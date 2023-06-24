@@ -1,9 +1,10 @@
 # GoT_Character_relevance_evolution
 
-1. Pick your favourite GoT characters (if you haven't seen it ask one of your class mates)
+This project aims to analyze the relationships between characters in the Game of Thrones book series 
+using network analysis.  The code reads data from CSV files, creates network graphs, and calculates 
+degree centrality for each character in the network. It then visualizes the network using different 
+layouts and libraries, such as NetworkX and Pyvis. The project also explores community detection and 
+centrality measures, including eigenvector centrality, closeness centrality, and betweenness centrality.
 
-2. Rank the relevance of these 5 characters across the 5 books using the criteria you think fits better this situation. The most relevant of the five characters in book1 should get a score of 5 and the less relevant a score of 1, and the same for the rest of the books.
+<img src="images/Got.jpeg" alt="Langchain image" width="1200"/>
 
-3.  Chart the relevance evolution of the different characters
-
-4. Try to automate as much as possible, do not do things for each book in separate cells and then manually merge, etc.
