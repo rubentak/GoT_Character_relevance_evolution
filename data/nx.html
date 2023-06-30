@@ -1,0 +1,456 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 99%;
+                 height: 950px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 99%;
+                 height: 950px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"Size": 2, "font": {"color": "black"}, "group": 0, "id": "Addam-Marbrand", "label": "Addam-Marbrand", "shape": "dot", "size": 2}, {"Size": 29, "font": {"color": "black"}, "group": 6, "id": "Jaime-Lannister", "label": "Jaime-Lannister", "shape": "dot", "size": 29}, {"Size": 22, "font": {"color": "black"}, "group": 0, "id": "Tywin-Lannister", "label": "Tywin-Lannister", "shape": "dot", "size": 22}, {"Size": 6, "font": {"color": "black"}, "group": 6, "id": "Aerys-II-Targaryen", "label": "Aerys-II-Targaryen", "shape": "dot", "size": 6}, {"Size": 14, "font": {"color": "black"}, "group": 6, "id": "Barristan-Selmy", "label": "Barristan-Selmy", "shape": "dot", "size": 14}, {"Size": 11, "font": {"color": "black"}, "group": 0, "id": "Brynden-Tully", "label": "Brynden-Tully", "shape": "dot", "size": 11}, {"Size": 43, "font": {"color": "black"}, "group": 0, "id": "Catelyn-Stark", "label": "Catelyn-Stark", "shape": "dot", "size": 43}, {"Size": 30, "font": {"color": "black"}, "group": 6, "id": "Cersei-Lannister", "label": "Cersei-Lannister", "shape": "dot", "size": 30}, {"Size": 66, "font": {"color": "black"}, "group": 2, "id": "Eddard-Stark", "label": "Eddard-Stark", "shape": "dot", "size": 66}, {"Size": 11, "font": {"color": "black"}, "group": 0, "id": "Edmure-Tully", "label": "Edmure-Tully", "shape": "dot", "size": 11}, {"Size": 6, "font": {"color": "black"}, "group": 1, "id": "Galbart-Glover", "label": "Galbart-Glover", "shape": "dot", "size": 6}, {"Size": 12, "font": {"color": "black"}, "group": 6, "id": "Gregor-Clegane", "label": "Gregor-Clegane", "shape": "dot", "size": 12}, {"Size": 1, "font": {"color": "black"}, "group": 6, "id": "Harys-Swyft", "label": "Harys-Swyft", "shape": "dot", "size": 1}, {"Size": 30, "font": {"color": "black"}, "group": 6, "id": "Joffrey-Baratheon", "label": "Joffrey-Baratheon", "shape": "dot", "size": 30}, {"Size": 15, "font": {"color": "black"}, "group": 6, "id": "Jon-Arryn", "label": "Jon-Arryn", "shape": "dot", "size": 15}, {"Size": 21, "font": {"color": "black"}, "group": 1, "id": "Jory-Cassel", "label": "Jory-Cassel", "shape": "dot", "size": 21}, {"Size": 3, "font": {"color": "black"}, "group": 0, "id": "Kevan-Lannister", "label": "Kevan-Lannister", "shape": "dot", "size": 3}, {"Size": 14, "font": {"color": "black"}, "group": 6, "id": "Loras-Tyrell", "label": "Loras-Tyrell", "shape": "dot", "size": 14}, {"Size": 15, "font": {"color": "black"}, "group": 0, "id": "Lysa-Arryn", "label": "Lysa-Arryn", "shape": "dot", "size": 15}, {"Size": 26, "font": {"color": "black"}, "group": 6, "id": "Petyr-Baelish", "label": "Petyr-Baelish", "shape": "dot", "size": 26}, {"Size": 18, "font": {"color": "black"}, "group": 6, "id": "Renly-Baratheon", "label": "Renly-Baratheon", "shape": "dot", "size": 18}, {"Size": 10, "font": {"color": "black"}, "group": 1, "id": "Rickard-Karstark", "label": "Rickard-Karstark", "shape": "dot", "size": 10}, {"Size": 35, "font": {"color": "black"}, "group": 1, "id": "Robb-Stark", "label": "Robb-Stark", "shape": "dot", "size": 35}, {"Size": 50, "font": {"color": "black"}, "group": 6, "id": "Robert-Baratheon", "label": "Robert-Baratheon", "shape": "dot", "size": 50}, {"Size": 18, "font": {"color": "black"}, "group": 1, "id": "Rodrik-Cassel", "label": "Rodrik-Cassel", "shape": "dot", "size": 18}, {"Size": 16, "font": {"color": "black"}, "group": 6, "id": "Sandor-Clegane", "label": "Sandor-Clegane", "shape": "dot", "size": 16}, {"Size": 35, "font": {"color": "black"}, "group": 6, "id": "Sansa-Stark", "label": "Sansa-Stark", "shape": "dot", "size": 35}, {"Size": 46, "font": {"color": "black"}, "group": 0, "id": "Tyrion-Lannister", "label": "Tyrion-Lannister", "shape": "dot", "size": 46}, {"Size": 17, "font": {"color": "black"}, "group": 6, "id": "Varys", "label": "Varys", "shape": "dot", "size": 17}, {"Size": 4, "font": {"color": "black"}, "group": 1, "id": "Wyl-(guard)", "label": "Wyl-(guard)", "shape": "dot", "size": 4}, {"Size": 10, "font": {"color": "black"}, "group": 0, "id": "Bronn", "label": "Bronn", "shape": "dot", "size": 10}, {"Size": 8, "font": {"color": "black"}, "group": 1, "id": "Jon-Umber-(Greatjon)", "label": "Jon-Umber-(Greatjon)", "shape": "dot", "size": 8}, {"Size": 5, "font": {"color": "black"}, "group": 0, "id": "Marq-Piper", "label": "Marq-Piper", "shape": "dot", "size": 5}, {"Size": 14, "font": {"color": "black"}, "group": 6, "id": "Pycelle", "label": "Pycelle", "shape": "dot", "size": 14}, {"Size": 7, "font": {"color": "black"}, "group": 3, "id": "Rhaegar-Targaryen", "label": "Rhaegar-Targaryen", "shape": "dot", "size": 7}, {"Size": 5, "font": {"color": "black"}, "group": 1, "id": "Roose-Bolton", "label": "Roose-Bolton", "shape": "dot", "size": 5}, {"Size": 12, "font": {"color": "black"}, "group": 6, "id": "Stannis-Baratheon", "label": "Stannis-Baratheon", "shape": "dot", "size": 12}, {"Size": 15, "font": {"color": "black"}, "group": 1, "id": "Theon-Greyjoy", "label": "Theon-Greyjoy", "shape": "dot", "size": 15}, {"Size": 7, "font": {"color": "black"}, "group": 0, "id": "Walder-Frey", "label": "Walder-Frey", "shape": "dot", "size": 7}, {"Size": 2, "font": {"color": "black"}, "group": 2, "id": "Aegon-I-Targaryen", "label": "Aegon-I-Targaryen", "shape": "dot", "size": 2}, {"Size": 21, "font": {"color": "black"}, "group": 3, "id": "Daenerys-Targaryen", "label": "Daenerys-Targaryen", "shape": "dot", "size": 21}, {"Size": 6, "font": {"color": "black"}, "group": 3, "id": "Aggo", "label": "Aggo", "shape": "dot", "size": 6}, {"Size": 4, "font": {"color": "black"}, "group": 3, "id": "Cohollo", "label": "Cohollo", "shape": "dot", "size": 4}, {"Size": 6, "font": {"color": "black"}, "group": 3, "id": "Doreah", "label": "Doreah", "shape": "dot", "size": 6}, {"Size": 19, "font": {"color": "black"}, "group": 3, "id": "Drogo", "label": "Drogo", "shape": "dot", "size": 19}, {"Size": 1, "font": {"color": "black"}, "group": 3, "id": "Eroeh", "label": "Eroeh", "shape": "dot", "size": 1}, {"Size": 6, "font": {"color": "black"}, "group": 3, "id": "Haggo", "label": "Haggo", "shape": "dot", "size": 6}, {"Size": 6, "font": {"color": "black"}, "group": 3, "id": "Illyrio-Mopatis", "label": "Illyrio-Mopatis", "shape": "dot", "size": 6}, {"Size": 8, "font": {"color": "black"}, "group": 3, "id": "Irri", "label": "Irri", "shape": "dot", "size": 8}, {"Size": 5, "font": {"color": "black"}, "group": 3, "id": "Jhiqui", "label": "Jhiqui", "shape": "dot", "size": 5}, {"Size": 6, "font": {"color": "black"}, "group": 3, "id": "Jhogo", "label": "Jhogo", "shape": "dot", "size": 6}, {"Size": 13, "font": {"color": "black"}, "group": 3, "id": "Jorah-Mormont", "label": "Jorah-Mormont", "shape": "dot", "size": 13}, {"Size": 6, "font": {"color": "black"}, "group": 3, "id": "Mirri-Maz-Duur", "label": "Mirri-Maz-Duur", "shape": "dot", "size": 6}, {"Size": 7, "font": {"color": "black"}, "group": 3, "id": "Qotho", "label": "Qotho", "shape": "dot", "size": 7}, {"Size": 5, "font": {"color": "black"}, "group": 3, "id": "Quaro", "label": "Quaro", "shape": "dot", "size": 5}, {"Size": 5, "font": {"color": "black"}, "group": 3, "id": "Rakharo", "label": "Rakharo", "shape": "dot", "size": 5}, {"Size": 8, "font": {"color": "black"}, "group": 3, "id": "Viserys-Targaryen", "label": "Viserys-Targaryen", "shape": "dot", "size": 8}, {"Size": 5, "font": {"color": "black"}, "group": 1, "id": "Alyn", "label": "Alyn", "shape": "dot", "size": 5}, {"Size": 27, "font": {"color": "black"}, "group": 6, "id": "Arya-Stark", "label": "Arya-Stark", "shape": "dot", "size": 27}, {"Size": 2, "font": {"color": "black"}, "group": 2, "id": "Balon-Greyjoy", "label": "Balon-Greyjoy", "shape": "dot", "size": 2}, {"Size": 6, "font": {"color": "black"}, "group": 6, "id": "Beric-Dondarrion", "label": "Beric-Dondarrion", "shape": "dot", "size": 6}, {"Size": 32, "font": {"color": "black"}, "group": 1, "id": "Bran-Stark", "label": "Bran-Stark", "shape": "dot", "size": 32}, {"Size": 6, "font": {"color": "black"}, "group": 2, "id": "Brandon-Stark", "label": "Brandon-Stark", "shape": "dot", "size": 6}, {"Size": 3, "font": {"color": "black"}, "group": 2, "id": "Cayn", "label": "Cayn", "shape": "dot", "size": 3}, {"Size": 2, "font": {"color": "black"}, "group": 2, "id": "Daryn-Hornwood", "label": "Daryn-Hornwood", "shape": "dot", "size": 2}, {"Size": 2, "font": {"color": "black"}, "group": 2, "id": "Desmond", "label": "Desmond", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Gendry", "label": "Gendry", "shape": "dot", "size": 1}, {"Size": 5, "font": {"color": "black"}, "group": 2, "id": "Gerold-Hightower", "label": "Gerold-Hightower", "shape": "dot", "size": 5}, {"Size": 4, "font": {"color": "black"}, "group": 1, "id": "Harwin", "label": "Harwin", "shape": "dot", "size": 4}, {"Size": 2, "font": {"color": "black"}, "group": 2, "id": "High-Septon-(fat_one)", "label": "High-Septon-(fat_one)", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Howland-Reed", "label": "Howland-Reed", "shape": "dot", "size": 1}, {"Size": 9, "font": {"color": "black"}, "group": 6, "id": "Ilyn-Payne", "label": "Ilyn-Payne", "shape": "dot", "size": 9}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Jacks", "label": "Jacks", "shape": "dot", "size": 1}, {"Size": 7, "font": {"color": "black"}, "group": 6, "id": "Janos-Slynt", "label": "Janos-Slynt", "shape": "dot", "size": 7}, {"Size": 37, "font": {"color": "black"}, "group": 4, "id": "Jon-Snow", "label": "Jon-Snow", "shape": "dot", "size": 37}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Joss", "label": "Joss", "shape": "dot", "size": 1}, {"Size": 18, "font": {"color": "black"}, "group": 1, "id": "Luwin", "label": "Luwin", "shape": "dot", "size": 18}, {"Size": 4, "font": {"color": "black"}, "group": 2, "id": "Lyanna-Stark", "label": "Lyanna-Stark", "shape": "dot", "size": 4}, {"Size": 11, "font": {"color": "black"}, "group": 6, "id": "Mordane", "label": "Mordane", "shape": "dot", "size": 11}, {"Size": 5, "font": {"color": "black"}, "group": 6, "id": "Mycah", "label": "Mycah", "shape": "dot", "size": 5}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Porther", "label": "Porther", "shape": "dot", "size": 1}, {"Size": 2, "font": {"color": "black"}, "group": 2, "id": "Raymun-Darry", "label": "Raymun-Darry", "shape": "dot", "size": 2}, {"Size": 9, "font": {"color": "black"}, "group": 1, "id": "Rickon-Stark", "label": "Rickon-Stark", "shape": "dot", "size": 9}, {"Size": 3, "font": {"color": "black"}, "group": 6, "id": "Syrio-Forel", "label": "Syrio-Forel", "shape": "dot", "size": 3}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Tobho-Mott", "label": "Tobho-Mott", "shape": "dot", "size": 1}, {"Size": 7, "font": {"color": "black"}, "group": 2, "id": "Tomard", "label": "Tomard", "shape": "dot", "size": 7}, {"Size": 3, "font": {"color": "black"}, "group": 2, "id": "Torrhen-Karstark", "label": "Torrhen-Karstark", "shape": "dot", "size": 3}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Tregar", "label": "Tregar", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Varly", "label": "Varly", "shape": "dot", "size": 1}, {"Size": 5, "font": {"color": "black"}, "group": 6, "id": "Vayon-Poole", "label": "Vayon-Poole", "shape": "dot", "size": 5}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Wylla", "label": "Wylla", "shape": "dot", "size": 1}, {"Size": 7, "font": {"color": "black"}, "group": 4, "id": "Aemon-Targaryen-(Maester-Aemon)", "label": "Aemon-Targaryen-(Maester-Aemon)", "shape": "dot", "size": 7}, {"Size": 10, "font": {"color": "black"}, "group": 4, "id": "Alliser-Thorne", "label": "Alliser-Thorne", "shape": "dot", "size": 10}, {"Size": 5, "font": {"color": "black"}, "group": 4, "id": "Bowen-Marsh", "label": "Bowen-Marsh", "shape": "dot", "size": 5}, {"Size": 3, "font": {"color": "black"}, "group": 4, "id": "Chett", "label": "Chett", "shape": "dot", "size": 3}, {"Size": 1, "font": {"color": "black"}, "group": 4, "id": "Clydas", "label": "Clydas", "shape": "dot", "size": 1}, {"Size": 13, "font": {"color": "black"}, "group": 4, "id": "Jeor-Mormont", "label": "Jeor-Mormont", "shape": "dot", "size": 13}, {"Size": 12, "font": {"color": "black"}, "group": 4, "id": "Samwell-Tarly", "label": "Samwell-Tarly", "shape": "dot", "size": 12}, {"Size": 7, "font": {"color": "black"}, "group": 4, "id": "Grenn", "label": "Grenn", "shape": "dot", "size": 7}, {"Size": 8, "font": {"color": "black"}, "group": 4, "id": "Halder", "label": "Halder", "shape": "dot", "size": 8}, {"Size": 7, "font": {"color": "black"}, "group": 4, "id": "Pypar", "label": "Pypar", "shape": "dot", "size": 7}, {"Size": 6, "font": {"color": "black"}, "group": 4, "id": "Rast", "label": "Rast", "shape": "dot", "size": 6}, {"Size": 14, "font": {"color": "black"}, "group": 1, "id": "Benjen-Stark", "label": "Benjen-Stark", "shape": "dot", "size": 14}, {"Size": 3, "font": {"color": "black"}, "group": 4, "id": "Gared", "label": "Gared", "shape": "dot", "size": 3}, {"Size": 4, "font": {"color": "black"}, "group": 4, "id": "Jaremy-Rykker", "label": "Jaremy-Rykker", "shape": "dot", "size": 4}, {"Size": 7, "font": {"color": "black"}, "group": 1, "id": "Yoren", "label": "Yoren", "shape": "dot", "size": 7}, {"Size": 3, "font": {"color": "black"}, "group": 4, "id": "Albett", "label": "Albett", "shape": "dot", "size": 3}, {"Size": 1, "font": {"color": "black"}, "group": 4, "id": "Dareon", "label": "Dareon", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 4, "id": "Donal-Noye", "label": "Donal-Noye", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 4, "id": "Dywen", "label": "Dywen", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 4, "id": "Hobb", "label": "Hobb", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 4, "id": "Matthar", "label": "Matthar", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 4, "id": "Othor", "label": "Othor", "shape": "dot", "size": 1}, {"Size": 4, "font": {"color": "black"}, "group": 4, "id": "Todder", "label": "Todder", "shape": "dot", "size": 4}, {"Size": 1, "font": {"color": "black"}, "group": 4, "id": "Randyll-Tarly", "label": "Randyll-Tarly", "shape": "dot", "size": 1}, {"Size": 2, "font": {"color": "black"}, "group": 2, "id": "Rickard-Stark", "label": "Rickard-Stark", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Arthur-Dayne", "label": "Arthur-Dayne", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 2, "id": "Oswell-Whent", "label": "Oswell-Whent", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 6, "id": "Hugh", "label": "Hugh", "shape": "dot", "size": 1}, {"Size": 5, "font": {"color": "black"}, "group": 0, "id": "Hoster-Tully", "label": "Hoster-Tully", "shape": "dot", "size": 5}, {"Size": 6, "font": {"color": "black"}, "group": 6, "id": "Jeyne-Poole", "label": "Jeyne-Poole", "shape": "dot", "size": 6}, {"Size": 1, "font": {"color": "black"}, "group": 6, "id": "Lancel-Lannister", "label": "Lancel-Lannister", "shape": "dot", "size": 1}, {"Size": 9, "font": {"color": "black"}, "group": 6, "id": "Meryn-Trant", "label": "Meryn-Trant", "shape": "dot", "size": 9}, {"Size": 7, "font": {"color": "black"}, "group": 6, "id": "Myrcella-Baratheon", "label": "Myrcella-Baratheon", "shape": "dot", "size": 7}, {"Size": 8, "font": {"color": "black"}, "group": 6, "id": "Tommen-Baratheon", "label": "Tommen-Baratheon", "shape": "dot", "size": 8}, {"Size": 2, "font": {"color": "black"}, "group": 3, "id": "Jommo", "label": "Jommo", "shape": "dot", "size": 2}, {"Size": 3, "font": {"color": "black"}, "group": 3, "id": "Ogo", "label": "Ogo", "shape": "dot", "size": 3}, {"Size": 1, "font": {"color": "black"}, "group": 3, "id": "Rhaego", "label": "Rhaego", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Chella", "label": "Chella", "shape": "dot", "size": 1}, {"Size": 3, "font": {"color": "black"}, "group": 0, "id": "Chiggen", "label": "Chiggen", "shape": "dot", "size": 3}, {"Size": 3, "font": {"color": "black"}, "group": 0, "id": "Conn", "label": "Conn", "shape": "dot", "size": 3}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Gunthor-son-of-Gurn", "label": "Gunthor-son-of-Gurn", "shape": "dot", "size": 1}, {"Size": 2, "font": {"color": "black"}, "group": 0, "id": "Jyck", "label": "Jyck", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Kurleket", "label": "Kurleket", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Leo-Lefford", "label": "Leo-Lefford", "shape": "dot", "size": 1}, {"Size": 5, "font": {"color": "black"}, "group": 0, "id": "Marillion", "label": "Marillion", "shape": "dot", "size": 5}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Mord", "label": "Mord", "shape": "dot", "size": 1}, {"Size": 2, "font": {"color": "black"}, "group": 0, "id": "Morrec", "label": "Morrec", "shape": "dot", "size": 2}, {"Size": 3, "font": {"color": "black"}, "group": 0, "id": "Robert-Arryn", "label": "Robert-Arryn", "shape": "dot", "size": 3}, {"Size": 2, "font": {"color": "black"}, "group": 0, "id": "Shae", "label": "Shae", "shape": "dot", "size": 2}, {"Size": 6, "font": {"color": "black"}, "group": 0, "id": "Shagga", "label": "Shagga", "shape": "dot", "size": 6}, {"Size": 2, "font": {"color": "black"}, "group": 0, "id": "Timett", "label": "Timett", "shape": "dot", "size": 2}, {"Size": 6, "font": {"color": "black"}, "group": 0, "id": "Vardis-Egen", "label": "Vardis-Egen", "shape": "dot", "size": 6}, {"Size": 6, "font": {"color": "black"}, "group": 0, "id": "Willis-Wode", "label": "Willis-Wode", "shape": "dot", "size": 6}, {"Size": 6, "font": {"color": "black"}, "group": 1, "id": "Hullen", "label": "Hullen", "shape": "dot", "size": 6}, {"Size": 2, "font": {"color": "black"}, "group": 1, "id": "Heward", "label": "Heward", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 1, "id": "Mance-Rayder", "label": "Mance-Rayder", "shape": "dot", "size": 1}, {"Size": 3, "font": {"color": "black"}, "group": 4, "id": "Waymar-Royce", "label": "Waymar-Royce", "shape": "dot", "size": 3}, {"Size": 1, "font": {"color": "black"}, "group": 1, "id": "Hali", "label": "Hali", "shape": "dot", "size": 1}, {"Size": 5, "font": {"color": "black"}, "group": 1, "id": "Hallis-Mollen", "label": "Hallis-Mollen", "shape": "dot", "size": 5}, {"Size": 4, "font": {"color": "black"}, "group": 1, "id": "Hodor", "label": "Hodor", "shape": "dot", "size": 4}, {"Size": 2, "font": {"color": "black"}, "group": 1, "id": "Joseth", "label": "Joseth", "shape": "dot", "size": 2}, {"Size": 4, "font": {"color": "black"}, "group": 1, "id": "Nan", "label": "Nan", "shape": "dot", "size": 4}, {"Size": 3, "font": {"color": "black"}, "group": 1, "id": "Osha", "label": "Osha", "shape": "dot", "size": 3}, {"Size": 2, "font": {"color": "black"}, "group": 1, "id": "Stiv", "label": "Stiv", "shape": "dot", "size": 2}, {"Size": 2, "font": {"color": "black"}, "group": 0, "id": "Colemon", "label": "Colemon", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Donnel-Waynwood", "label": "Donnel-Waynwood", "shape": "dot", "size": 1}, {"Size": 3, "font": {"color": "black"}, "group": 0, "id": "Eon-Hunter", "label": "Eon-Hunter", "shape": "dot", "size": 3}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Masha-Heddle", "label": "Masha-Heddle", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Moreo-Tumitis", "label": "Moreo-Tumitis", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Mya-Stone", "label": "Mya-Stone", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Mychel-Redfort", "label": "Mychel-Redfort", "shape": "dot", "size": 1}, {"Size": 2, "font": {"color": "black"}, "group": 0, "id": "Nestor-Royce", "label": "Nestor-Royce", "shape": "dot", "size": 2}, {"Size": 2, "font": {"color": "black"}, "group": 0, "id": "Stevron-Frey", "label": "Stevron-Frey", "shape": "dot", "size": 2}, {"Size": 3, "font": {"color": "black"}, "group": 0, "id": "Tytos-Blackwood", "label": "Tytos-Blackwood", "shape": "dot", "size": 3}, {"Size": 2, "font": {"color": "black"}, "group": 0, "id": "Wendel-Manderly", "label": "Wendel-Manderly", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 6, "id": "Arys-Oakheart", "label": "Arys-Oakheart", "shape": "dot", "size": 1}, {"Size": 5, "font": {"color": "black"}, "group": 6, "id": "Boros-Blount", "label": "Boros-Blount", "shape": "dot", "size": 5}, {"Size": 2, "font": {"color": "black"}, "group": 6, "id": "Balon-Swann", "label": "Balon-Swann", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 6, "id": "Maegor-I-Targaryen", "label": "Maegor-I-Targaryen", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 4, "id": "Jafer-Flowers", "label": "Jafer-Flowers", "shape": "dot", "size": 1}, {"Size": 2, "font": {"color": "black"}, "group": 4, "id": "Will-(prologue)", "label": "Will-(prologue)", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 6, "id": "Thoros-of-Myr", "label": "Thoros-of-Myr", "shape": "dot", "size": 1}, {"Size": 2, "font": {"color": "black"}, "group": 6, "id": "Mace-Tyrell", "label": "Mace-Tyrell", "shape": "dot", "size": 2}, {"Size": 2, "font": {"color": "black"}, "group": 1, "id": "Maege-Mormont", "label": "Maege-Mormont", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Dolf", "label": "Dolf", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Ulf-son-of-Umar", "label": "Ulf-son-of-Umar", "shape": "dot", "size": 1}, {"Size": 3, "font": {"color": "black"}, "group": 0, "id": "Karyl-Vance", "label": "Karyl-Vance", "shape": "dot", "size": 3}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Lyn-Corbray", "label": "Lyn-Corbray", "shape": "dot", "size": 1}, {"Size": 3, "font": {"color": "black"}, "group": 5, "id": "Danwell-Frey", "label": "Danwell-Frey", "shape": "dot", "size": 3}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Jonos-Bracken", "label": "Jonos-Bracken", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Clement-Piper", "label": "Clement-Piper", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 0, "id": "Coratt", "label": "Coratt", "shape": "dot", "size": 1}, {"Size": 2, "font": {"color": "black"}, "group": 5, "id": "Hosteen-Frey", "label": "Hosteen-Frey", "shape": "dot", "size": 2}, {"Size": 2, "font": {"color": "black"}, "group": 5, "id": "Jared-Frey", "label": "Jared-Frey", "shape": "dot", "size": 2}, {"Size": 1, "font": {"color": "black"}, "group": 3, "id": "Fogo", "label": "Fogo", "shape": "dot", "size": 1}, {"Size": 1, "font": {"color": "black"}, "group": 6, "id": "Paxter-Redwyne", "label": "Paxter-Redwyne", "shape": "dot", "size": 1}]);
+                  edges = new vis.DataSet([{"from": "Addam-Marbrand", "to": "Jaime-Lannister", "width": 1}, {"from": "Addam-Marbrand", "to": "Tywin-Lannister", "width": 1}, {"from": "Jaime-Lannister", "to": "Aerys-II-Targaryen", "width": 1}, {"from": "Jaime-Lannister", "to": "Barristan-Selmy", "width": 1}, {"from": "Jaime-Lannister", "to": "Brynden-Tully", "width": 1}, {"from": "Jaime-Lannister", "to": "Catelyn-Stark", "width": 1}, {"from": "Jaime-Lannister", "to": "Cersei-Lannister", "width": 1}, {"from": "Jaime-Lannister", "to": "Eddard-Stark", "width": 1}, {"from": "Jaime-Lannister", "to": "Edmure-Tully", "width": 1}, {"from": "Jaime-Lannister", "to": "Galbart-Glover", "width": 1}, {"from": "Jaime-Lannister", "to": "Gregor-Clegane", "width": 1}, {"from": "Jaime-Lannister", "to": "Harys-Swyft", "width": 1}, {"from": "Jaime-Lannister", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Jaime-Lannister", "to": "Jon-Arryn", "width": 1}, {"from": "Jaime-Lannister", "to": "Jory-Cassel", "width": 1}, {"from": "Jaime-Lannister", "to": "Kevan-Lannister", "width": 1}, {"from": "Jaime-Lannister", "to": "Loras-Tyrell", "width": 1}, {"from": "Jaime-Lannister", "to": "Lysa-Arryn", "width": 1}, {"from": "Jaime-Lannister", "to": "Petyr-Baelish", "width": 1}, {"from": "Jaime-Lannister", "to": "Renly-Baratheon", "width": 1}, {"from": "Jaime-Lannister", "to": "Rickard-Karstark", "width": 1}, {"from": "Jaime-Lannister", "to": "Robb-Stark", "width": 1}, {"from": "Jaime-Lannister", "to": "Robert-Baratheon", "width": 1}, {"from": "Jaime-Lannister", "to": "Rodrik-Cassel", "width": 1}, {"from": "Jaime-Lannister", "to": "Sandor-Clegane", "width": 1}, {"from": "Jaime-Lannister", "to": "Sansa-Stark", "width": 1}, {"from": "Jaime-Lannister", "to": "Tyrion-Lannister", "width": 1}, {"from": "Jaime-Lannister", "to": "Tywin-Lannister", "width": 1}, {"from": "Jaime-Lannister", "to": "Varys", "width": 1}, {"from": "Jaime-Lannister", "to": "Wyl-(guard)", "width": 1}, {"from": "Tywin-Lannister", "to": "Bronn", "width": 1}, {"from": "Tywin-Lannister", "to": "Brynden-Tully", "width": 1}, {"from": "Tywin-Lannister", "to": "Catelyn-Stark", "width": 1}, {"from": "Tywin-Lannister", "to": "Cersei-Lannister", "width": 1}, {"from": "Tywin-Lannister", "to": "Eddard-Stark", "width": 1}, {"from": "Tywin-Lannister", "to": "Gregor-Clegane", "width": 1}, {"from": "Tywin-Lannister", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Tywin-Lannister", "to": "Jon-Umber-(Greatjon)", "width": 1}, {"from": "Tywin-Lannister", "to": "Kevan-Lannister", "width": 1}, {"from": "Tywin-Lannister", "to": "Marq-Piper", "width": 1}, {"from": "Tywin-Lannister", "to": "Pycelle", "width": 1}, {"from": "Tywin-Lannister", "to": "Rhaegar-Targaryen", "width": 1}, {"from": "Tywin-Lannister", "to": "Robb-Stark", "width": 1}, {"from": "Tywin-Lannister", "to": "Robert-Baratheon", "width": 1}, {"from": "Tywin-Lannister", "to": "Roose-Bolton", "width": 1}, {"from": "Tywin-Lannister", "to": "Stannis-Baratheon", "width": 1}, {"from": "Tywin-Lannister", "to": "Theon-Greyjoy", "width": 1}, {"from": "Tywin-Lannister", "to": "Tyrion-Lannister", "width": 1}, {"from": "Tywin-Lannister", "to": "Varys", "width": 1}, {"from": "Tywin-Lannister", "to": "Walder-Frey", "width": 1}, {"from": "Aegon-I-Targaryen", "to": "Daenerys-Targaryen", "width": 1}, {"from": "Aegon-I-Targaryen", "to": "Eddard-Stark", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Aggo", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Cohollo", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Doreah", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Drogo", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Eddard-Stark", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Eroeh", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Haggo", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Illyrio-Mopatis", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Irri", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Jhiqui", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Jhogo", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Jorah-Mormont", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Mirri-Maz-Duur", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Qotho", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Quaro", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Rakharo", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Rhaegar-Targaryen", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Robert-Baratheon", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Varys", "width": 1}, {"from": "Daenerys-Targaryen", "to": "Viserys-Targaryen", "width": 1}, {"from": "Eddard-Stark", "to": "Aerys-II-Targaryen", "width": 1}, {"from": "Eddard-Stark", "to": "Alyn", "width": 1}, {"from": "Eddard-Stark", "to": "Arya-Stark", "width": 1}, {"from": "Eddard-Stark", "to": "Balon-Greyjoy", "width": 1}, {"from": "Eddard-Stark", "to": "Barristan-Selmy", "width": 1}, {"from": "Eddard-Stark", "to": "Beric-Dondarrion", "width": 1}, {"from": "Eddard-Stark", "to": "Bran-Stark", "width": 1}, {"from": "Eddard-Stark", "to": "Brandon-Stark", "width": 1}, {"from": "Eddard-Stark", "to": "Catelyn-Stark", "width": 1}, {"from": "Eddard-Stark", "to": "Cayn", "width": 1}, {"from": "Eddard-Stark", "to": "Cersei-Lannister", "width": 1}, {"from": "Eddard-Stark", "to": "Daryn-Hornwood", "width": 1}, {"from": "Eddard-Stark", "to": "Desmond", "width": 1}, {"from": "Eddard-Stark", "to": "Edmure-Tully", "width": 1}, {"from": "Eddard-Stark", "to": "Galbart-Glover", "width": 1}, {"from": "Eddard-Stark", "to": "Gendry", "width": 1}, {"from": "Eddard-Stark", "to": "Gerold-Hightower", "width": 1}, {"from": "Eddard-Stark", "to": "Gregor-Clegane", "width": 1}, {"from": "Eddard-Stark", "to": "Harwin", "width": 1}, {"from": "Eddard-Stark", "to": "High-Septon-(fat_one)", "width": 1}, {"from": "Eddard-Stark", "to": "Howland-Reed", "width": 1}, {"from": "Eddard-Stark", "to": "Ilyn-Payne", "width": 1}, {"from": "Eddard-Stark", "to": "Jacks", "width": 1}, {"from": "Eddard-Stark", "to": "Janos-Slynt", "width": 1}, {"from": "Eddard-Stark", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Eddard-Stark", "to": "Jon-Arryn", "width": 1}, {"from": "Eddard-Stark", "to": "Jon-Snow", "width": 1}, {"from": "Eddard-Stark", "to": "Jory-Cassel", "width": 1}, {"from": "Eddard-Stark", "to": "Joss", "width": 1}, {"from": "Eddard-Stark", "to": "Loras-Tyrell", "width": 1}, {"from": "Eddard-Stark", "to": "Luwin", "width": 1}, {"from": "Eddard-Stark", "to": "Lyanna-Stark", "width": 1}, {"from": "Eddard-Stark", "to": "Lysa-Arryn", "width": 1}, {"from": "Eddard-Stark", "to": "Marq-Piper", "width": 1}, {"from": "Eddard-Stark", "to": "Mordane", "width": 1}, {"from": "Eddard-Stark", "to": "Mycah", "width": 1}, {"from": "Eddard-Stark", "to": "Petyr-Baelish", "width": 1}, {"from": "Eddard-Stark", "to": "Porther", "width": 1}, {"from": "Eddard-Stark", "to": "Pycelle", "width": 1}, {"from": "Eddard-Stark", "to": "Raymun-Darry", "width": 1}, {"from": "Eddard-Stark", "to": "Renly-Baratheon", "width": 1}, {"from": "Eddard-Stark", "to": "Rhaegar-Targaryen", "width": 1}, {"from": "Eddard-Stark", "to": "Rickard-Karstark", "width": 1}, {"from": "Eddard-Stark", "to": "Rickon-Stark", "width": 1}, {"from": "Eddard-Stark", "to": "Robb-Stark", "width": 1}, {"from": "Eddard-Stark", "to": "Robert-Baratheon", "width": 1}, {"from": "Eddard-Stark", "to": "Rodrik-Cassel", "width": 1}, {"from": "Eddard-Stark", "to": "Sandor-Clegane", "width": 1}, {"from": "Eddard-Stark", "to": "Sansa-Stark", "width": 1}, {"from": "Eddard-Stark", "to": "Stannis-Baratheon", "width": 1}, {"from": "Eddard-Stark", "to": "Syrio-Forel", "width": 1}, {"from": "Eddard-Stark", "to": "Theon-Greyjoy", "width": 1}, {"from": "Eddard-Stark", "to": "Tobho-Mott", "width": 1}, {"from": "Eddard-Stark", "to": "Tomard", "width": 1}, {"from": "Eddard-Stark", "to": "Torrhen-Karstark", "width": 1}, {"from": "Eddard-Stark", "to": "Tregar", "width": 1}, {"from": "Eddard-Stark", "to": "Tyrion-Lannister", "width": 1}, {"from": "Eddard-Stark", "to": "Varly", "width": 1}, {"from": "Eddard-Stark", "to": "Varys", "width": 1}, {"from": "Eddard-Stark", "to": "Vayon-Poole", "width": 1}, {"from": "Eddard-Stark", "to": "Wyl-(guard)", "width": 1}, {"from": "Eddard-Stark", "to": "Wylla", "width": 1}, {"from": "Aemon-Targaryen-(Maester-Aemon)", "to": "Alliser-Thorne", "width": 1}, {"from": "Aemon-Targaryen-(Maester-Aemon)", "to": "Bowen-Marsh", "width": 1}, {"from": "Aemon-Targaryen-(Maester-Aemon)", "to": "Chett", "width": 1}, {"from": "Aemon-Targaryen-(Maester-Aemon)", "to": "Clydas", "width": 1}, {"from": "Aemon-Targaryen-(Maester-Aemon)", "to": "Jeor-Mormont", "width": 1}, {"from": "Aemon-Targaryen-(Maester-Aemon)", "to": "Jon-Snow", "width": 1}, {"from": "Aemon-Targaryen-(Maester-Aemon)", "to": "Samwell-Tarly", "width": 1}, {"from": "Alliser-Thorne", "to": "Bowen-Marsh", "width": 1}, {"from": "Alliser-Thorne", "to": "Grenn", "width": 1}, {"from": "Alliser-Thorne", "to": "Halder", "width": 1}, {"from": "Alliser-Thorne", "to": "Jeor-Mormont", "width": 1}, {"from": "Alliser-Thorne", "to": "Jon-Snow", "width": 1}, {"from": "Alliser-Thorne", "to": "Pypar", "width": 1}, {"from": "Alliser-Thorne", "to": "Rast", "width": 1}, {"from": "Alliser-Thorne", "to": "Samwell-Tarly", "width": 1}, {"from": "Alliser-Thorne", "to": "Tyrion-Lannister", "width": 1}, {"from": "Bowen-Marsh", "to": "Jeor-Mormont", "width": 1}, {"from": "Bowen-Marsh", "to": "Jon-Snow", "width": 1}, {"from": "Bowen-Marsh", "to": "Samwell-Tarly", "width": 1}, {"from": "Chett", "to": "Jon-Snow", "width": 1}, {"from": "Chett", "to": "Samwell-Tarly", "width": 1}, {"from": "Jeor-Mormont", "to": "Benjen-Stark", "width": 1}, {"from": "Jeor-Mormont", "to": "Bran-Stark", "width": 1}, {"from": "Jeor-Mormont", "to": "Gared", "width": 1}, {"from": "Jeor-Mormont", "to": "Grenn", "width": 1}, {"from": "Jeor-Mormont", "to": "Jaremy-Rykker", "width": 1}, {"from": "Jeor-Mormont", "to": "Jon-Snow", "width": 1}, {"from": "Jeor-Mormont", "to": "Robert-Baratheon", "width": 1}, {"from": "Jeor-Mormont", "to": "Samwell-Tarly", "width": 1}, {"from": "Jeor-Mormont", "to": "Tyrion-Lannister", "width": 1}, {"from": "Jeor-Mormont", "to": "Yoren", "width": 1}, {"from": "Jon-Snow", "to": "Albett", "width": 1}, {"from": "Jon-Snow", "to": "Arya-Stark", "width": 1}, {"from": "Jon-Snow", "to": "Benjen-Stark", "width": 1}, {"from": "Jon-Snow", "to": "Bran-Stark", "width": 1}, {"from": "Jon-Snow", "to": "Catelyn-Stark", "width": 1}, {"from": "Jon-Snow", "to": "Cersei-Lannister", "width": 1}, {"from": "Jon-Snow", "to": "Dareon", "width": 1}, {"from": "Jon-Snow", "to": "Donal-Noye", "width": 1}, {"from": "Jon-Snow", "to": "Dywen", "width": 1}, {"from": "Jon-Snow", "to": "Grenn", "width": 1}, {"from": "Jon-Snow", "to": "Halder", "width": 1}, {"from": "Jon-Snow", "to": "Hobb", "width": 1}, {"from": "Jon-Snow", "to": "Jaremy-Rykker", "width": 1}, {"from": "Jon-Snow", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Jon-Snow", "to": "Jory-Cassel", "width": 1}, {"from": "Jon-Snow", "to": "Luwin", "width": 1}, {"from": "Jon-Snow", "to": "Matthar", "width": 1}, {"from": "Jon-Snow", "to": "Mordane", "width": 1}, {"from": "Jon-Snow", "to": "Othor", "width": 1}, {"from": "Jon-Snow", "to": "Pypar", "width": 1}, {"from": "Jon-Snow", "to": "Rast", "width": 1}, {"from": "Jon-Snow", "to": "Rickon-Stark", "width": 1}, {"from": "Jon-Snow", "to": "Robb-Stark", "width": 1}, {"from": "Jon-Snow", "to": "Robert-Baratheon", "width": 1}, {"from": "Jon-Snow", "to": "Rodrik-Cassel", "width": 1}, {"from": "Jon-Snow", "to": "Samwell-Tarly", "width": 1}, {"from": "Jon-Snow", "to": "Sansa-Stark", "width": 1}, {"from": "Jon-Snow", "to": "Theon-Greyjoy", "width": 1}, {"from": "Jon-Snow", "to": "Todder", "width": 1}, {"from": "Jon-Snow", "to": "Tyrion-Lannister", "width": 1}, {"from": "Jon-Snow", "to": "Yoren", "width": 1}, {"from": "Samwell-Tarly", "to": "Grenn", "width": 1}, {"from": "Samwell-Tarly", "to": "Halder", "width": 1}, {"from": "Samwell-Tarly", "to": "Pypar", "width": 1}, {"from": "Samwell-Tarly", "to": "Randyll-Tarly", "width": 1}, {"from": "Samwell-Tarly", "to": "Rast", "width": 1}, {"from": "Samwell-Tarly", "to": "Robb-Stark", "width": 1}, {"from": "Aerys-II-Targaryen", "to": "Brandon-Stark", "width": 1}, {"from": "Aerys-II-Targaryen", "to": "Gerold-Hightower", "width": 1}, {"from": "Aerys-II-Targaryen", "to": "Jon-Arryn", "width": 1}, {"from": "Aerys-II-Targaryen", "to": "Robert-Baratheon", "width": 1}, {"from": "Brandon-Stark", "to": "Lyanna-Stark", "width": 1}, {"from": "Brandon-Stark", "to": "Petyr-Baelish", "width": 1}, {"from": "Brandon-Stark", "to": "Rickard-Stark", "width": 1}, {"from": "Brandon-Stark", "to": "Robert-Baratheon", "width": 1}, {"from": "Gerold-Hightower", "to": "Arthur-Dayne", "width": 1}, {"from": "Gerold-Hightower", "to": "Oswell-Whent", "width": 1}, {"from": "Gerold-Hightower", "to": "Robert-Baratheon", "width": 1}, {"from": "Jon-Arryn", "to": "Barristan-Selmy", "width": 1}, {"from": "Jon-Arryn", "to": "Bran-Stark", "width": 1}, {"from": "Jon-Arryn", "to": "Catelyn-Stark", "width": 1}, {"from": "Jon-Arryn", "to": "Cersei-Lannister", "width": 1}, {"from": "Jon-Arryn", "to": "Hugh", "width": 1}, {"from": "Jon-Arryn", "to": "Lysa-Arryn", "width": 1}, {"from": "Jon-Arryn", "to": "Petyr-Baelish", "width": 1}, {"from": "Jon-Arryn", "to": "Pycelle", "width": 1}, {"from": "Jon-Arryn", "to": "Robert-Baratheon", "width": 1}, {"from": "Jon-Arryn", "to": "Stannis-Baratheon", "width": 1}, {"from": "Jon-Arryn", "to": "Tyrion-Lannister", "width": 1}, {"from": "Jon-Arryn", "to": "Varys", "width": 1}, {"from": "Robert-Baratheon", "to": "Alyn", "width": 1}, {"from": "Robert-Baratheon", "to": "Arya-Stark", "width": 1}, {"from": "Robert-Baratheon", "to": "Balon-Greyjoy", "width": 1}, {"from": "Robert-Baratheon", "to": "Barristan-Selmy", "width": 1}, {"from": "Robert-Baratheon", "to": "Benjen-Stark", "width": 1}, {"from": "Robert-Baratheon", "to": "Beric-Dondarrion", "width": 1}, {"from": "Robert-Baratheon", "to": "Bran-Stark", "width": 1}, {"from": "Robert-Baratheon", "to": "Catelyn-Stark", "width": 1}, {"from": "Robert-Baratheon", "to": "Cersei-Lannister", "width": 1}, {"from": "Robert-Baratheon", "to": "Drogo", "width": 1}, {"from": "Robert-Baratheon", "to": "Gregor-Clegane", "width": 1}, {"from": "Robert-Baratheon", "to": "Hoster-Tully", "width": 1}, {"from": "Robert-Baratheon", "to": "Illyrio-Mopatis", "width": 1}, {"from": "Robert-Baratheon", "to": "Ilyn-Payne", "width": 1}, {"from": "Robert-Baratheon", "to": "Janos-Slynt", "width": 1}, {"from": "Robert-Baratheon", "to": "Jeyne-Poole", "width": 1}, {"from": "Robert-Baratheon", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Robert-Baratheon", "to": "Jorah-Mormont", "width": 1}, {"from": "Robert-Baratheon", "to": "Jory-Cassel", "width": 1}, {"from": "Robert-Baratheon", "to": "Lancel-Lannister", "width": 1}, {"from": "Robert-Baratheon", "to": "Loras-Tyrell", "width": 1}, {"from": "Robert-Baratheon", "to": "Lyanna-Stark", "width": 1}, {"from": "Robert-Baratheon", "to": "Lysa-Arryn", "width": 1}, {"from": "Robert-Baratheon", "to": "Meryn-Trant", "width": 1}, {"from": "Robert-Baratheon", "to": "Mordane", "width": 1}, {"from": "Robert-Baratheon", "to": "Myrcella-Baratheon", "width": 1}, {"from": "Robert-Baratheon", "to": "Petyr-Baelish", "width": 1}, {"from": "Robert-Baratheon", "to": "Pycelle", "width": 1}, {"from": "Robert-Baratheon", "to": "Raymun-Darry", "width": 1}, {"from": "Robert-Baratheon", "to": "Renly-Baratheon", "width": 1}, {"from": "Robert-Baratheon", "to": "Rhaegar-Targaryen", "width": 1}, {"from": "Robert-Baratheon", "to": "Robb-Stark", "width": 1}, {"from": "Robert-Baratheon", "to": "Sandor-Clegane", "width": 1}, {"from": "Robert-Baratheon", "to": "Sansa-Stark", "width": 1}, {"from": "Robert-Baratheon", "to": "Stannis-Baratheon", "width": 1}, {"from": "Robert-Baratheon", "to": "Tommen-Baratheon", "width": 1}, {"from": "Robert-Baratheon", "to": "Tyrion-Lannister", "width": 1}, {"from": "Robert-Baratheon", "to": "Varys", "width": 1}, {"from": "Robert-Baratheon", "to": "Vayon-Poole", "width": 1}, {"from": "Robert-Baratheon", "to": "Viserys-Targaryen", "width": 1}, {"from": "Aggo", "to": "Drogo", "width": 1}, {"from": "Aggo", "to": "Jhogo", "width": 1}, {"from": "Aggo", "to": "Jorah-Mormont", "width": 1}, {"from": "Aggo", "to": "Quaro", "width": 1}, {"from": "Aggo", "to": "Rakharo", "width": 1}, {"from": "Drogo", "to": "Cohollo", "width": 1}, {"from": "Drogo", "to": "Doreah", "width": 1}, {"from": "Drogo", "to": "Haggo", "width": 1}, {"from": "Drogo", "to": "Illyrio-Mopatis", "width": 1}, {"from": "Drogo", "to": "Irri", "width": 1}, {"from": "Drogo", "to": "Jhiqui", "width": 1}, {"from": "Drogo", "to": "Jhogo", "width": 1}, {"from": "Drogo", "to": "Jommo", "width": 1}, {"from": "Drogo", "to": "Jorah-Mormont", "width": 1}, {"from": "Drogo", "to": "Mirri-Maz-Duur", "width": 1}, {"from": "Drogo", "to": "Ogo", "width": 1}, {"from": "Drogo", "to": "Qotho", "width": 1}, {"from": "Drogo", "to": "Quaro", "width": 1}, {"from": "Drogo", "to": "Rakharo", "width": 1}, {"from": "Drogo", "to": "Rhaego", "width": 1}, {"from": "Drogo", "to": "Viserys-Targaryen", "width": 1}, {"from": "Jhogo", "to": "Irri", "width": 1}, {"from": "Jhogo", "to": "Jorah-Mormont", "width": 1}, {"from": "Jhogo", "to": "Mirri-Maz-Duur", "width": 1}, {"from": "Jorah-Mormont", "to": "Doreah", "width": 1}, {"from": "Jorah-Mormont", "to": "Illyrio-Mopatis", "width": 1}, {"from": "Jorah-Mormont", "to": "Irri", "width": 1}, {"from": "Jorah-Mormont", "to": "Jhiqui", "width": 1}, {"from": "Jorah-Mormont", "to": "Mirri-Maz-Duur", "width": 1}, {"from": "Jorah-Mormont", "to": "Qotho", "width": 1}, {"from": "Jorah-Mormont", "to": "Rhaegar-Targaryen", "width": 1}, {"from": "Jorah-Mormont", "to": "Viserys-Targaryen", "width": 1}, {"from": "Quaro", "to": "Qotho", "width": 1}, {"from": "Quaro", "to": "Rakharo", "width": 1}, {"from": "Rakharo", "to": "Haggo", "width": 1}, {"from": "Albett", "to": "Halder", "width": 1}, {"from": "Albett", "to": "Rast", "width": 1}, {"from": "Halder", "to": "Grenn", "width": 1}, {"from": "Halder", "to": "Pypar", "width": 1}, {"from": "Halder", "to": "Rast", "width": 1}, {"from": "Halder", "to": "Todder", "width": 1}, {"from": "Rast", "to": "Pypar", "width": 1}, {"from": "Grenn", "to": "Pypar", "width": 1}, {"from": "Grenn", "to": "Todder", "width": 1}, {"from": "Pypar", "to": "Todder", "width": 1}, {"from": "Tyrion-Lannister", "to": "Benjen-Stark", "width": 1}, {"from": "Tyrion-Lannister", "to": "Bran-Stark", "width": 1}, {"from": "Tyrion-Lannister", "to": "Bronn", "width": 1}, {"from": "Tyrion-Lannister", "to": "Brynden-Tully", "width": 1}, {"from": "Tyrion-Lannister", "to": "Catelyn-Stark", "width": 1}, {"from": "Tyrion-Lannister", "to": "Cersei-Lannister", "width": 1}, {"from": "Tyrion-Lannister", "to": "Chella", "width": 1}, {"from": "Tyrion-Lannister", "to": "Chiggen", "width": 1}, {"from": "Tyrion-Lannister", "to": "Conn", "width": 1}, {"from": "Tyrion-Lannister", "to": "Gregor-Clegane", "width": 1}, {"from": "Tyrion-Lannister", "to": "Gunthor-son-of-Gurn", "width": 1}, {"from": "Tyrion-Lannister", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Tyrion-Lannister", "to": "Jyck", "width": 1}, {"from": "Tyrion-Lannister", "to": "Kevan-Lannister", "width": 1}, {"from": "Tyrion-Lannister", "to": "Kurleket", "width": 1}, {"from": "Tyrion-Lannister", "to": "Leo-Lefford", "width": 1}, {"from": "Tyrion-Lannister", "to": "Luwin", "width": 1}, {"from": "Tyrion-Lannister", "to": "Lysa-Arryn", "width": 1}, {"from": "Tyrion-Lannister", "to": "Marillion", "width": 1}, {"from": "Tyrion-Lannister", "to": "Mord", "width": 1}, {"from": "Tyrion-Lannister", "to": "Morrec", "width": 1}, {"from": "Tyrion-Lannister", "to": "Petyr-Baelish", "width": 1}, {"from": "Tyrion-Lannister", "to": "Renly-Baratheon", "width": 1}, {"from": "Tyrion-Lannister", "to": "Rickon-Stark", "width": 1}, {"from": "Tyrion-Lannister", "to": "Robb-Stark", "width": 1}, {"from": "Tyrion-Lannister", "to": "Robert-Arryn", "width": 1}, {"from": "Tyrion-Lannister", "to": "Rodrik-Cassel", "width": 1}, {"from": "Tyrion-Lannister", "to": "Sandor-Clegane", "width": 1}, {"from": "Tyrion-Lannister", "to": "Sansa-Stark", "width": 1}, {"from": "Tyrion-Lannister", "to": "Shae", "width": 1}, {"from": "Tyrion-Lannister", "to": "Shagga", "width": 1}, {"from": "Tyrion-Lannister", "to": "Theon-Greyjoy", "width": 1}, {"from": "Tyrion-Lannister", "to": "Timett", "width": 1}, {"from": "Tyrion-Lannister", "to": "Tommen-Baratheon", "width": 1}, {"from": "Tyrion-Lannister", "to": "Vardis-Egen", "width": 1}, {"from": "Tyrion-Lannister", "to": "Varys", "width": 1}, {"from": "Tyrion-Lannister", "to": "Willis-Wode", "width": 1}, {"from": "Tyrion-Lannister", "to": "Yoren", "width": 1}, {"from": "Alyn", "to": "Harwin", "width": 1}, {"from": "Alyn", "to": "Jory-Cassel", "width": 1}, {"from": "Alyn", "to": "Tomard", "width": 1}, {"from": "Harwin", "to": "Hullen", "width": 1}, {"from": "Harwin", "to": "Jory-Cassel", "width": 1}, {"from": "Jory-Cassel", "to": "Arya-Stark", "width": 1}, {"from": "Jory-Cassel", "to": "Bran-Stark", "width": 1}, {"from": "Jory-Cassel", "to": "Cersei-Lannister", "width": 1}, {"from": "Jory-Cassel", "to": "Heward", "width": 1}, {"from": "Jory-Cassel", "to": "Hullen", "width": 1}, {"from": "Jory-Cassel", "to": "Mordane", "width": 1}, {"from": "Jory-Cassel", "to": "Petyr-Baelish", "width": 1}, {"from": "Jory-Cassel", "to": "Robb-Stark", "width": 1}, {"from": "Jory-Cassel", "to": "Rodrik-Cassel", "width": 1}, {"from": "Jory-Cassel", "to": "Sansa-Stark", "width": 1}, {"from": "Jory-Cassel", "to": "Stannis-Baratheon", "width": 1}, {"from": "Jory-Cassel", "to": "Theon-Greyjoy", "width": 1}, {"from": "Jory-Cassel", "to": "Tomard", "width": 1}, {"from": "Jory-Cassel", "to": "Vayon-Poole", "width": 1}, {"from": "Jory-Cassel", "to": "Wyl-(guard)", "width": 1}, {"from": "Tomard", "to": "Arya-Stark", "width": 1}, {"from": "Tomard", "to": "Cayn", "width": 1}, {"from": "Tomard", "to": "Petyr-Baelish", "width": 1}, {"from": "Tomard", "to": "Sansa-Stark", "width": 1}, {"from": "Arya-Stark", "to": "Benjen-Stark", "width": 1}, {"from": "Arya-Stark", "to": "Bran-Stark", "width": 1}, {"from": "Arya-Stark", "to": "Catelyn-Stark", "width": 1}, {"from": "Arya-Stark", "to": "Cersei-Lannister", "width": 1}, {"from": "Arya-Stark", "to": "Desmond", "width": 1}, {"from": "Arya-Stark", "to": "Ilyn-Payne", "width": 1}, {"from": "Arya-Stark", "to": "Jeyne-Poole", "width": 1}, {"from": "Arya-Stark", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Arya-Stark", "to": "Meryn-Trant", "width": 1}, {"from": "Arya-Stark", "to": "Mordane", "width": 1}, {"from": "Arya-Stark", "to": "Mycah", "width": 1}, {"from": "Arya-Stark", "to": "Myrcella-Baratheon", "width": 1}, {"from": "Arya-Stark", "to": "Petyr-Baelish", "width": 1}, {"from": "Arya-Stark", "to": "Rickon-Stark", "width": 1}, {"from": "Arya-Stark", "to": "Robb-Stark", "width": 1}, {"from": "Arya-Stark", "to": "Rodrik-Cassel", "width": 1}, {"from": "Arya-Stark", "to": "Sandor-Clegane", "width": 1}, {"from": "Arya-Stark", "to": "Sansa-Stark", "width": 1}, {"from": "Arya-Stark", "to": "Syrio-Forel", "width": 1}, {"from": "Arya-Stark", "to": "Tommen-Baratheon", "width": 1}, {"from": "Arya-Stark", "to": "Vayon-Poole", "width": 1}, {"from": "Arya-Stark", "to": "Yoren", "width": 1}, {"from": "Benjen-Stark", "to": "Bran-Stark", "width": 1}, {"from": "Benjen-Stark", "to": "Cersei-Lannister", "width": 1}, {"from": "Benjen-Stark", "to": "Jaremy-Rykker", "width": 1}, {"from": "Benjen-Stark", "to": "Luwin", "width": 1}, {"from": "Benjen-Stark", "to": "Mance-Rayder", "width": 1}, {"from": "Benjen-Stark", "to": "Robb-Stark", "width": 1}, {"from": "Benjen-Stark", "to": "Theon-Greyjoy", "width": 1}, {"from": "Benjen-Stark", "to": "Waymar-Royce", "width": 1}, {"from": "Benjen-Stark", "to": "Yoren", "width": 1}, {"from": "Bran-Stark", "to": "Catelyn-Stark", "width": 1}, {"from": "Bran-Stark", "to": "Cersei-Lannister", "width": 1}, {"from": "Bran-Stark", "to": "Hali", "width": 1}, {"from": "Bran-Stark", "to": "Hallis-Mollen", "width": 1}, {"from": "Bran-Stark", "to": "Hodor", "width": 1}, {"from": "Bran-Stark", "to": "Hullen", "width": 1}, {"from": "Bran-Stark", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Bran-Stark", "to": "Joseth", "width": 1}, {"from": "Bran-Stark", "to": "Luwin", "width": 1}, {"from": "Bran-Stark", "to": "Nan", "width": 1}, {"from": "Bran-Stark", "to": "Osha", "width": 1}, {"from": "Bran-Stark", "to": "Petyr-Baelish", "width": 1}, {"from": "Bran-Stark", "to": "Renly-Baratheon", "width": 1}, {"from": "Bran-Stark", "to": "Rickard-Karstark", "width": 1}, {"from": "Bran-Stark", "to": "Rickard-Stark", "width": 1}, {"from": "Bran-Stark", "to": "Rickon-Stark", "width": 1}, {"from": "Bran-Stark", "to": "Robb-Stark", "width": 1}, {"from": "Bran-Stark", "to": "Rodrik-Cassel", "width": 1}, {"from": "Bran-Stark", "to": "Sansa-Stark", "width": 1}, {"from": "Bran-Stark", "to": "Stiv", "width": 1}, {"from": "Bran-Stark", "to": "Theon-Greyjoy", "width": 1}, {"from": "Bran-Stark", "to": "Tommen-Baratheon", "width": 1}, {"from": "Bran-Stark", "to": "Yoren", "width": 1}, {"from": "Catelyn-Stark", "to": "Bronn", "width": 1}, {"from": "Catelyn-Stark", "to": "Brynden-Tully", "width": 1}, {"from": "Catelyn-Stark", "to": "Cersei-Lannister", "width": 1}, {"from": "Catelyn-Stark", "to": "Colemon", "width": 1}, {"from": "Catelyn-Stark", "to": "Donnel-Waynwood", "width": 1}, {"from": "Catelyn-Stark", "to": "Edmure-Tully", "width": 1}, {"from": "Catelyn-Stark", "to": "Eon-Hunter", "width": 1}, {"from": "Catelyn-Stark", "to": "Hallis-Mollen", "width": 1}, {"from": "Catelyn-Stark", "to": "Hoster-Tully", "width": 1}, {"from": "Catelyn-Stark", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Catelyn-Stark", "to": "Jon-Umber-(Greatjon)", "width": 1}, {"from": "Catelyn-Stark", "to": "Luwin", "width": 1}, {"from": "Catelyn-Stark", "to": "Lysa-Arryn", "width": 1}, {"from": "Catelyn-Stark", "to": "Marillion", "width": 1}, {"from": "Catelyn-Stark", "to": "Masha-Heddle", "width": 1}, {"from": "Catelyn-Stark", "to": "Moreo-Tumitis", "width": 1}, {"from": "Catelyn-Stark", "to": "Mya-Stone", "width": 1}, {"from": "Catelyn-Stark", "to": "Mychel-Redfort", "width": 1}, {"from": "Catelyn-Stark", "to": "Nestor-Royce", "width": 1}, {"from": "Catelyn-Stark", "to": "Petyr-Baelish", "width": 1}, {"from": "Catelyn-Stark", "to": "Rickard-Karstark", "width": 1}, {"from": "Catelyn-Stark", "to": "Rickon-Stark", "width": 1}, {"from": "Catelyn-Stark", "to": "Robb-Stark", "width": 1}, {"from": "Catelyn-Stark", "to": "Robert-Arryn", "width": 1}, {"from": "Catelyn-Stark", "to": "Rodrik-Cassel", "width": 1}, {"from": "Catelyn-Stark", "to": "Sansa-Stark", "width": 1}, {"from": "Catelyn-Stark", "to": "Stevron-Frey", "width": 1}, {"from": "Catelyn-Stark", "to": "Theon-Greyjoy", "width": 1}, {"from": "Catelyn-Stark", "to": "Tytos-Blackwood", "width": 1}, {"from": "Catelyn-Stark", "to": "Vardis-Egen", "width": 1}, {"from": "Catelyn-Stark", "to": "Varys", "width": 1}, {"from": "Catelyn-Stark", "to": "Walder-Frey", "width": 1}, {"from": "Catelyn-Stark", "to": "Wendel-Manderly", "width": 1}, {"from": "Catelyn-Stark", "to": "Willis-Wode", "width": 1}, {"from": "Cersei-Lannister", "to": "Arys-Oakheart", "width": 1}, {"from": "Cersei-Lannister", "to": "Barristan-Selmy", "width": 1}, {"from": "Cersei-Lannister", "to": "Boros-Blount", "width": 1}, {"from": "Cersei-Lannister", "to": "Ilyn-Payne", "width": 1}, {"from": "Cersei-Lannister", "to": "Janos-Slynt", "width": 1}, {"from": "Cersei-Lannister", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Cersei-Lannister", "to": "Meryn-Trant", "width": 1}, {"from": "Cersei-Lannister", "to": "Mordane", "width": 1}, {"from": "Cersei-Lannister", "to": "Myrcella-Baratheon", "width": 1}, {"from": "Cersei-Lannister", "to": "Petyr-Baelish", "width": 1}, {"from": "Cersei-Lannister", "to": "Pycelle", "width": 1}, {"from": "Cersei-Lannister", "to": "Renly-Baratheon", "width": 1}, {"from": "Cersei-Lannister", "to": "Sandor-Clegane", "width": 1}, {"from": "Cersei-Lannister", "to": "Sansa-Stark", "width": 1}, {"from": "Cersei-Lannister", "to": "Stannis-Baratheon", "width": 1}, {"from": "Cersei-Lannister", "to": "Tommen-Baratheon", "width": 1}, {"from": "Cersei-Lannister", "to": "Varys", "width": 1}, {"from": "Cersei-Lannister", "to": "Vayon-Poole", "width": 1}, {"from": "Ilyn-Payne", "to": "Jeyne-Poole", "width": 1}, {"from": "Ilyn-Payne", "to": "Joffrey-Baratheon", "width": 1}, {"from": "Ilyn-Payne", "to": "Loras-Tyrell", "width": 1}, {"from": "Ilyn-Payne", "to": "Sansa-Stark", "width": 1}, {"from": "Ilyn-Payne", "to": "Varys", "width": 1}, {"from": "Jeyne-Poole", "to": "Loras-Tyrell", "width": 1}, {"from": "Jeyne-Poole", "to": "Mordane", "width": 1}, {"from": "Jeyne-Poole", "to": "Sansa-Stark", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Barristan-Selmy", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Boros-Blount", "width": 1}, {"from": "Joffrey-Baratheon", "to": "High-Septon-(fat_one)", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Janos-Slynt", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Loras-Tyrell", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Meryn-Trant", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Mordane", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Mycah", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Myrcella-Baratheon", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Petyr-Baelish", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Pycelle", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Renly-Baratheon", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Robb-Stark", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Rodrik-Cassel", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Sandor-Clegane", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Sansa-Stark", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Stannis-Baratheon", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Tommen-Baratheon", "width": 1}, {"from": "Joffrey-Baratheon", "to": "Varys", "width": 1}, {"from": "Meryn-Trant", "to": "Barristan-Selmy", "width": 1}, {"from": "Meryn-Trant", "to": "Boros-Blount", "width": 1}, {"from": "Meryn-Trant", "to": "Sandor-Clegane", "width": 1}, {"from": "Meryn-Trant", "to": "Sansa-Stark", "width": 1}, {"from": "Meryn-Trant", "to": "Syrio-Forel", "width": 1}, {"from": "Mordane", "to": "Myrcella-Baratheon", "width": 1}, {"from": "Mordane", "to": "Petyr-Baelish", "width": 1}, {"from": "Mordane", "to": "Sansa-Stark", "width": 1}, {"from": "Mycah", "to": "Sandor-Clegane", "width": 1}, {"from": "Mycah", "to": "Sansa-Stark", "width": 1}, {"from": "Myrcella-Baratheon", "to": "Sansa-Stark", "width": 1}, {"from": "Myrcella-Baratheon", "to": "Tommen-Baratheon", "width": 1}, {"from": "Petyr-Baelish", "to": "Barristan-Selmy", "width": 1}, {"from": "Petyr-Baelish", "to": "Edmure-Tully", "width": 1}, {"from": "Petyr-Baelish", "to": "Gregor-Clegane", "width": 1}, {"from": "Petyr-Baelish", "to": "Janos-Slynt", "width": 1}, {"from": "Petyr-Baelish", "to": "Loras-Tyrell", "width": 1}, {"from": "Petyr-Baelish", "to": "Lysa-Arryn", "width": 1}, {"from": "Petyr-Baelish", "to": "Pycelle", "width": 1}, {"from": "Petyr-Baelish", "to": "Renly-Baratheon", "width": 1}, {"from": "Petyr-Baelish", "to": "Rodrik-Cassel", "width": 1}, {"from": "Petyr-Baelish", "to": "Sandor-Clegane", "width": 1}, {"from": "Petyr-Baelish", "to": "Sansa-Stark", "width": 1}, {"from": "Petyr-Baelish", "to": "Varys", "width": 1}, {"from": "Rickon-Stark", "to": "Luwin", "width": 1}, {"from": "Rickon-Stark", "to": "Robb-Stark", "width": 1}, {"from": "Rickon-Stark", "to": "Sansa-Stark", "width": 1}, {"from": "Robb-Stark", "to": "Brynden-Tully", "width": 1}, {"from": "Robb-Stark", "to": "Edmure-Tully", "width": 1}, {"from": "Robb-Stark", "to": "Galbart-Glover", "width": 1}, {"from": "Robb-Stark", "to": "Hallis-Mollen", "width": 1}, {"from": "Robb-Stark", "to": "Hodor", "width": 1}, {"from": "Robb-Stark", "to": "Hullen", "width": 1}, {"from": "Robb-Stark", "to": "Jon-Umber-(Greatjon)", "width": 1}, {"from": "Robb-Stark", "to": "Luwin", "width": 1}, {"from": "Robb-Stark", "to": "Nan", "width": 1}, {"from": "Robb-Stark", "to": "Osha", "width": 1}, {"from": "Robb-Stark", "to": "Renly-Baratheon", "width": 1}, {"from": "Robb-Stark", "to": "Rickard-Karstark", "width": 1}, {"from": "Robb-Stark", "to": "Rodrik-Cassel", "width": 1}, {"from": "Robb-Stark", "to": "Roose-Bolton", "width": 1}, {"from": "Robb-Stark", "to": "Sansa-Stark", "width": 1}, {"from": "Robb-Stark", "to": "Stiv", "width": 1}, {"from": "Robb-Stark", "to": "Theon-Greyjoy", "width": 1}, {"from": "Robb-Stark", "to": "Torrhen-Karstark", "width": 1}, {"from": "Robb-Stark", "to": "Walder-Frey", "width": 1}, {"from": "Robb-Stark", "to": "Wendel-Manderly", "width": 1}, {"from": "Robb-Stark", "to": "Yoren", "width": 1}, {"from": "Rodrik-Cassel", "to": "Bronn", "width": 1}, {"from": "Rodrik-Cassel", "to": "Hullen", "width": 1}, {"from": "Rodrik-Cassel", "to": "Loras-Tyrell", "width": 1}, {"from": "Rodrik-Cassel", "to": "Luwin", "width": 1}, {"from": "Rodrik-Cassel", "to": "Marillion", "width": 1}, {"from": "Rodrik-Cassel", "to": "Theon-Greyjoy", "width": 1}, {"from": "Rodrik-Cassel", "to": "Willis-Wode", "width": 1}, {"from": "Sandor-Clegane", "to": "Balon-Swann", "width": 1}, {"from": "Sandor-Clegane", "to": "Barristan-Selmy", "width": 1}, {"from": "Sandor-Clegane", "to": "Gregor-Clegane", "width": 1}, {"from": "Sandor-Clegane", "to": "Loras-Tyrell", "width": 1}, {"from": "Sandor-Clegane", "to": "Renly-Baratheon", "width": 1}, {"from": "Sandor-Clegane", "to": "Sansa-Stark", "width": 1}, {"from": "Sansa-Stark", "to": "Barristan-Selmy", "width": 1}, {"from": "Sansa-Stark", "to": "Beric-Dondarrion", "width": 1}, {"from": "Sansa-Stark", "to": "Boros-Blount", "width": 1}, {"from": "Sansa-Stark", "to": "Gregor-Clegane", "width": 1}, {"from": "Sansa-Stark", "to": "Janos-Slynt", "width": 1}, {"from": "Sansa-Stark", "to": "Loras-Tyrell", "width": 1}, {"from": "Sansa-Stark", "to": "Lyanna-Stark", "width": 1}, {"from": "Sansa-Stark", "to": "Maegor-I-Targaryen", "width": 1}, {"from": "Sansa-Stark", "to": "Pycelle", "width": 1}, {"from": "Sansa-Stark", "to": "Renly-Baratheon", "width": 1}, {"from": "Sansa-Stark", "to": "Rhaegar-Targaryen", "width": 1}, {"from": "Sansa-Stark", "to": "Stannis-Baratheon", "width": 1}, {"from": "Sansa-Stark", "to": "Varys", "width": 1}, {"from": "Tommen-Baratheon", "to": "Luwin", "width": 1}, {"from": "Balon-Swann", "to": "Renly-Baratheon", "width": 1}, {"from": "Renly-Baratheon", "to": "Barristan-Selmy", "width": 1}, {"from": "Renly-Baratheon", "to": "Cayn", "width": 1}, {"from": "Renly-Baratheon", "to": "Loras-Tyrell", "width": 1}, {"from": "Renly-Baratheon", "to": "Pycelle", "width": 1}, {"from": "Renly-Baratheon", "to": "Stannis-Baratheon", "width": 1}, {"from": "Renly-Baratheon", "to": "Varys", "width": 1}, {"from": "Barristan-Selmy", "to": "Boros-Blount", "width": 1}, {"from": "Barristan-Selmy", "to": "Pycelle", "width": 1}, {"from": "Barristan-Selmy", "to": "Varys", "width": 1}, {"from": "Pycelle", "to": "Gregor-Clegane", "width": 1}, {"from": "Pycelle", "to": "Janos-Slynt", "width": 1}, {"from": "Pycelle", "to": "Stannis-Baratheon", "width": 1}, {"from": "Pycelle", "to": "Varys", "width": 1}, {"from": "Varys", "to": "Stannis-Baratheon", "width": 1}, {"from": "Jaremy-Rykker", "to": "Jafer-Flowers", "width": 1}, {"from": "Luwin", "to": "Hallis-Mollen", "width": 1}, {"from": "Luwin", "to": "Hodor", "width": 1}, {"from": "Luwin", "to": "Hullen", "width": 1}, {"from": "Luwin", "to": "Joseth", "width": 1}, {"from": "Luwin", "to": "Nan", "width": 1}, {"from": "Luwin", "to": "Osha", "width": 1}, {"from": "Luwin", "to": "Rickard-Karstark", "width": 1}, {"from": "Luwin", "to": "Theon-Greyjoy", "width": 1}, {"from": "Theon-Greyjoy", "to": "Brynden-Tully", "width": 1}, {"from": "Theon-Greyjoy", "to": "Hallis-Mollen", "width": 1}, {"from": "Theon-Greyjoy", "to": "Jon-Umber-(Greatjon)", "width": 1}, {"from": "Theon-Greyjoy", "to": "Walder-Frey", "width": 1}, {"from": "Waymar-Royce", "to": "Gared", "width": 1}, {"from": "Waymar-Royce", "to": "Will-(prologue)", "width": 1}, {"from": "Beric-Dondarrion", "to": "Gregor-Clegane", "width": 1}, {"from": "Beric-Dondarrion", "to": "Loras-Tyrell", "width": 1}, {"from": "Beric-Dondarrion", "to": "Thoros-of-Myr", "width": 1}, {"from": "Gregor-Clegane", "to": "Loras-Tyrell", "width": 1}, {"from": "Gregor-Clegane", "to": "Marq-Piper", "width": 1}, {"from": "Loras-Tyrell", "to": "Mace-Tyrell", "width": 1}, {"from": "Hodor", "to": "Nan", "width": 1}, {"from": "Rickard-Karstark", "to": "Galbart-Glover", "width": 1}, {"from": "Rickard-Karstark", "to": "Jon-Umber-(Greatjon)", "width": 1}, {"from": "Rickard-Karstark", "to": "Maege-Mormont", "width": 1}, {"from": "Rickard-Karstark", "to": "Roose-Bolton", "width": 1}, {"from": "Bronn", "to": "Chiggen", "width": 1}, {"from": "Bronn", "to": "Marillion", "width": 1}, {"from": "Bronn", "to": "Shae", "width": 1}, {"from": "Bronn", "to": "Shagga", "width": 1}, {"from": "Bronn", "to": "Vardis-Egen", "width": 1}, {"from": "Bronn", "to": "Willis-Wode", "width": 1}, {"from": "Chiggen", "to": "Willis-Wode", "width": 1}, {"from": "Marillion", "to": "Willis-Wode", "width": 1}, {"from": "Shagga", "to": "Conn", "width": 1}, {"from": "Shagga", "to": "Dolf", "width": 1}, {"from": "Shagga", "to": "Timett", "width": 1}, {"from": "Shagga", "to": "Ulf-son-of-Umar", "width": 1}, {"from": "Vardis-Egen", "to": "Colemon", "width": 1}, {"from": "Vardis-Egen", "to": "Eon-Hunter", "width": 1}, {"from": "Vardis-Egen", "to": "Lysa-Arryn", "width": 1}, {"from": "Brynden-Tully", "to": "Edmure-Tully", "width": 1}, {"from": "Brynden-Tully", "to": "Hoster-Tully", "width": 1}, {"from": "Brynden-Tully", "to": "Lysa-Arryn", "width": 1}, {"from": "Brynden-Tully", "to": "Nestor-Royce", "width": 1}, {"from": "Brynden-Tully", "to": "Walder-Frey", "width": 1}, {"from": "Edmure-Tully", "to": "Hoster-Tully", "width": 1}, {"from": "Edmure-Tully", "to": "Karyl-Vance", "width": 1}, {"from": "Edmure-Tully", "to": "Lysa-Arryn", "width": 1}, {"from": "Edmure-Tully", "to": "Marq-Piper", "width": 1}, {"from": "Edmure-Tully", "to": "Tytos-Blackwood", "width": 1}, {"from": "Hoster-Tully", "to": "Lysa-Arryn", "width": 1}, {"from": "Lysa-Arryn", "to": "Eon-Hunter", "width": 1}, {"from": "Lysa-Arryn", "to": "Lyn-Corbray", "width": 1}, {"from": "Lysa-Arryn", "to": "Robert-Arryn", "width": 1}, {"from": "Lysa-Arryn", "to": "Stannis-Baratheon", "width": 1}, {"from": "Walder-Frey", "to": "Danwell-Frey", "width": 1}, {"from": "Walder-Frey", "to": "Stevron-Frey", "width": 1}, {"from": "Jon-Umber-(Greatjon)", "to": "Galbart-Glover", "width": 1}, {"from": "Jon-Umber-(Greatjon)", "to": "Maege-Mormont", "width": 1}, {"from": "Jon-Umber-(Greatjon)", "to": "Roose-Bolton", "width": 1}, {"from": "Tytos-Blackwood", "to": "Jonos-Bracken", "width": 1}, {"from": "Clement-Piper", "to": "Karyl-Vance", "width": 1}, {"from": "Karyl-Vance", "to": "Marq-Piper", "width": 1}, {"from": "Cohollo", "to": "Haggo", "width": 1}, {"from": "Cohollo", "to": "Qotho", "width": 1}, {"from": "Haggo", "to": "Mirri-Maz-Duur", "width": 1}, {"from": "Haggo", "to": "Qotho", "width": 1}, {"from": "Qotho", "to": "Mirri-Maz-Duur", "width": 1}, {"from": "Conn", "to": "Coratt", "width": 1}, {"from": "Doreah", "to": "Irri", "width": 1}, {"from": "Doreah", "to": "Jhiqui", "width": 1}, {"from": "Doreah", "to": "Viserys-Targaryen", "width": 1}, {"from": "Illyrio-Mopatis", "to": "Irri", "width": 1}, {"from": "Illyrio-Mopatis", "to": "Viserys-Targaryen", "width": 1}, {"from": "Irri", "to": "Jhiqui", "width": 1}, {"from": "Irri", "to": "Viserys-Targaryen", "width": 1}, {"from": "Rhaegar-Targaryen", "to": "Viserys-Targaryen", "width": 1}, {"from": "Danwell-Frey", "to": "Hosteen-Frey", "width": 1}, {"from": "Danwell-Frey", "to": "Jared-Frey", "width": 1}, {"from": "Hosteen-Frey", "to": "Jared-Frey", "width": 1}, {"from": "Daryn-Hornwood", "to": "Torrhen-Karstark", "width": 1}, {"from": "Jommo", "to": "Ogo", "width": 1}, {"from": "Ogo", "to": "Fogo", "width": 1}, {"from": "Galbart-Glover", "to": "Roose-Bolton", "width": 1}, {"from": "Wyl-(guard)", "to": "Heward", "width": 1}, {"from": "Gared", "to": "Will-(prologue)", "width": 1}, {"from": "Jyck", "to": "Morrec", "width": 1}, {"from": "Mace-Tyrell", "to": "Paxter-Redwyne", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
