@@ -8,7 +8,6 @@ centrality measures, including eigenvector centrality, closeness centrality, and
 
 <img src="images/Got.jpeg" alt="GoT" width="800"/>
 
+<img src="images/animation.gif" alt="GoT" width="800"/>
 
-
-https://github.com/rubentak/GoT_Character_relevance_evolution/assets/116120414/2b6c60de-6bda-4c6d-b5c6-73d42ab0e0dc
 
