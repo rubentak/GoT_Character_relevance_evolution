@@ -1,6 +1,6 @@
-# GoT Character relevance evolution
+# GoT Character relevance evolution 🐉⚔️
 
-<img src="images/Got.jpeg" alt="GoT" width="800"/>
+
 
 This project aims to analyze the relationships between characters in the Game of Thrones book series 
 using network analysis.  The code reads data from CSV files, creates network graphs, and calculates 
