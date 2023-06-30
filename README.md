@@ -10,7 +10,7 @@ centrality measures, including eigenvector centrality, closeness centrality, and
 
 Pyvis Network Graph with communities:
 
-<img src="images/Pyvis_network_communities.png" alt="GoT" width="800"/>
+<img src="images/Pyvis_network_communities_white_txt.png" alt="GoT" width="800"/>
 
 Rank GoT Characters based on Degree Centrality:
 
