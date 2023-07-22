@@ -1,4 +1,4 @@
-# GoT Character relevance evolution 🐉⚔️
+# GoT Character relevance evolution 🐉 ⚔️
 
 
 
